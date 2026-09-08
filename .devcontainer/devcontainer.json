@@ -1,0 +1,44 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "DataPilot",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+
+  "forwardPorts": [8000, 5173],
+  "portsAttributes": {
+    "8000": { "label": "API FastAPI", "onAutoForward": "silent" },
+    "5173": { "label": "Front Vite", "onAutoForward": "openBrowser" }
+  },
+
+  "postCreateCommand": "make install",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "dbaeumer.vscode-eslint",
+        "ms-azuretools.vscode-docker",
+        "tamasfe.even-better-toml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["backend"],
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": { "source.organizeImports": "explicit" },
+        "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+        "[typescript]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
+        "[typescriptreact]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/.pytest_cache": true,
+          "**/.ruff_cache": true
+        }
+      }
+    }
+  }
+}

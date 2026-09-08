@@ -1,0 +1,34 @@
+# Development container.
+#
+# The key difference with the root `docker-compose.yml`: the source tree is
+# **bind-mounted**, not copied. Editing a file on the host changes it inside the
+# container immediately, so uvicorn's reloader and Vite's HMR both work. The
+# production compose file copies the code into images on purpose — an immutable
+# artefact is what you deploy; a live mount is what you develop against.
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:cached
+      # Named volumes keep dependencies inside the container, so a host
+      # `node_modules` built for another OS never shadows the Linux one.
+      - datapilot-node-modules:/workspace/frontend/node_modules
+      - datapilot-venv:/workspace/.venv
+    working_dir: /workspace
+    environment:
+      DATAPILOT_LLM_PROVIDER: ${DATAPILOT_LLM_PROVIDER:-fake}
+      DATAPILOT_ANTHROPIC_API_KEY: ${DATAPILOT_ANTHROPIC_API_KEY:-}
+      DATAPILOT_CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      VITE_DEV_API_TARGET: http://localhost:8000
+    ports:
+      - "8000:8000"
+      - "5173:5173"
+    # Keep the container alive; VS Code attaches to it and starts the servers.
+    command: sleep infinity
+
+volumes:
+  datapilot-node-modules:
+  datapilot-venv:
