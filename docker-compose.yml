@@ -1,0 +1,54 @@
+# Production-like stack: the browser talks only to nginx, nginx talks to the
+# backend over the Compose network. Nothing but port 8080 is published, so the
+# only way to reach the API is through the proxy — which is the point of the
+# exercise.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: datapilot-backend:local
+    environment:
+      # Offline by default: the whole stack runs and demos without any API key.
+      DATAPILOT_LLM_PROVIDER: ${DATAPILOT_LLM_PROVIDER:-fake}
+      DATAPILOT_ANTHROPIC_API_KEY: ${DATAPILOT_ANTHROPIC_API_KEY:-}
+      DATAPILOT_ANTHROPIC_MODEL: ${DATAPILOT_ANTHROPIC_MODEL:-claude-sonnet-4-5}
+      DATAPILOT_MAX_ITERATIONS: ${DATAPILOT_MAX_ITERATIONS:-8}
+      DATAPILOT_REQUEST_TIMEOUT_SECONDS: ${DATAPILOT_REQUEST_TIMEOUT_SECONDS:-60}
+      # Same-origin behind nginx: CORS is not involved, so the list stays empty.
+      DATAPILOT_CORS_ORIGINS: ${DATAPILOT_CORS_ORIGINS:-}
+    # Not published on the host: reachable only from the Compose network.
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).status == 200 else 1)"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: datapilot-frontend:local
+    ports:
+      - "${DATAPILOT_HTTP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        # Start only once /api/health answers: nginx would otherwise return 502
+        # for the first few seconds and the demo would look broken.
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
