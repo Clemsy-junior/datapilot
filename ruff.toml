@@ -1,0 +1,28 @@
+# Single lint/format configuration for the whole repository: the backend
+# package, the tests and the standalone scripts. Keeping it at the root means
+# `ruff check .` behaves identically from CI, from the Makefile and from an
+# editor, whatever directory it is invoked in.
+
+line-length = 100
+target-version = "py312"
+
+# Directories that contain first-party packages, so isort does not mistake
+# `app` for a third-party dependency.
+src = ["backend", "."]
+
+exclude = [".venv", "node_modules", "dist", "backend/data"]
+
+[lint]
+# E/W pycodestyle, F pyflakes, I isort, B bugbear, UP pyupgrade,
+# C4 comprehensions, SIM simplifications, RUF ruff-specific.
+select = ["E", "W", "F", "I", "B", "UP", "C4", "SIM", "RUF"]
+ignore = [
+    "E501",  # line length is the formatter's business, not the linter's
+    "B008",  # FastAPI dependency injection relies on calls in argument defaults
+]
+
+[lint.per-file-ignores]
+"backend/tests/*" = ["SIM117"]
+
+[format]
+quote-style = "double"
