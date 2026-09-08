@@ -66,6 +66,22 @@ class TestSettings:
 
         assert settings.cors_origins == ["http://a.test", "http://b.test"]
 
+    def test_cors_origins_accept_a_comma_separated_string_from_the_environment(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Regression test: pydantic-settings tries to json.loads() any
+        # environment value bound to a list field *before* field validators
+        # run. A comma-separated string is not JSON, so without NoDecode on
+        # `cors_origins` this raised SettingsError — invisible in the test
+        # above, which builds Settings(...) with a Python kwarg and never
+        # goes through the environment-variable source. This is exactly the
+        # path docker compose, the devcontainer and a real .env file use.
+        monkeypatch.setenv("DATAPILOT_CORS_ORIGINS", "http://a.test, http://b.test ,")
+
+        settings = Settings()
+
+        assert settings.cors_origins == ["http://a.test", "http://b.test"]
+
     def test_relative_data_dir_is_anchored_to_the_backend_package(self) -> None:
         settings = Settings(data_dir="data")
 

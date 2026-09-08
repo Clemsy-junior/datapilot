@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 
@@ -47,7 +47,16 @@ class Settings(BaseSettings):
     max_upload_mb: int = Field(default=25, ge=1, le=500)
 
     # --- HTTP --------------------------------------------------------------
-    cors_origins: list[str] = Field(
+    # NoDecode: pydantic-settings tries to json.loads() any environment value
+    # bound to a "complex" field (list, dict, ...) before validators ever run.
+    # DATAPILOT_CORS_ORIGINS is a plain comma-separated string ("a,b"), not
+    # JSON, so that implicit decode raised SettingsError before _split_origins
+    # got a chance to run — invisible in tests that build Settings(...) with a
+    # Python list directly, only surfacing when the value actually comes from
+    # an environment variable (docker compose, the devcontainer, a real .env).
+    # NoDecode disables that json.loads attempt so the raw string reaches the
+    # validator below.
+    cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
 
